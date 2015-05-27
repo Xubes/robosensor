@@ -12,12 +12,14 @@
 // AD0 high = 0x69
 MPU9150 sensor;
 
-float eps = 1e-9;
+#define ulong unsigned long
+
+double eps = 1e-9;
 int16_t gyro_scale = 131; // divisor for gyro ADC values
 int16_t rot, gx, gy, gz;
-int time;
-float angle_delta;
-int velocity, velocity_x, velocity_y, velocity_z;
+ulong time;
+double angle_delta, velocity;
+long velocity_x, velocity_y, velocity_z;
 int16_t gyro_baseline_x, gyro_baseline_y, gyro_baseline_z;
 
 void setup() {
@@ -72,15 +74,27 @@ void loop() {
     velocity_z = gz;
   }
   
+  /*
   velocity = sqrt(sq(velocity_x) + sq(velocity_y) + sq(velocity_z));
+  Serial.println(sq(velocity_x));
+  Serial.println(sq(velocity_y));
+  Serial.println(sq(velocity_z));
+  Serial.println(velocity);
+  Serial.println();
+  */
   
-  int now = millis();
-  int dt = now-time;
+  // The current position of the sensor should yield only changes in the gyroscope's y-axis.
+  // Verified by testing; remove other velocities since they will only throw the chair rotation off.
+  velocity = abs(velocity_y);
+  
+  // Upper sum to approximate integral of angular velocity.
+  ulong now = millis();
+  ulong dt = now-time;
   time = now;
-  float dtheta = (dt/1000.0) * velocity;
+  double dtheta = (dt/1000.0) * velocity;
   if(abs(dtheta) > eps) {    // dtheta should be positive anyway...
     angle_delta += dtheta;
-    Serial.println(angle_delta);
+    serialOut(angle_delta, velocity);
   }
   delay(5);
 }
@@ -95,7 +109,7 @@ void serialEvent(){
     switch(code){
       case(48):
       angle_delta = 0.0;
-      Serial.println(angle_delta);
+      serialOut(0.0,0.0);
       break;
     }
   }
@@ -114,4 +128,12 @@ void gyroScanBaseline(MPU9150 sensor, int duration, int16_t* mx, int16_t* my, in
     *my += (gy-*my)/count;
     *mz += (gz-*mz)/count;
   }
+}
+
+/* Convenience function to write data to the Serial port. */
+void serialOut(double dt, double dtps){
+  Serial.print(dt);
+  Serial.print(',');
+  Serial.print(dtps);
+  Serial.print("\n");
 }
