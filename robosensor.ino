@@ -15,11 +15,11 @@ MPU9150 sensor;
 #define ulong unsigned long
 
 double eps = 1e-9;
-int16_t gyro_scale = 131; // divisor for gyro ADC values
+double gyro_scale = 131; // divisor for gyro ADC values
 int16_t rot, gx, gy, gz;
 ulong time;
 double angle_delta, velocity;
-long velocity_x, velocity_y, velocity_z;
+double velocity_x, velocity_y, velocity_z;
 int16_t gyro_baseline_x, gyro_baseline_y, gyro_baseline_z;
 
 void setup() {
@@ -56,22 +56,19 @@ void setup() {
 void loop() {
   // get rotation data
   sensor.getRotation(&gx,&gy,&gz);
-  gx /= gyro_scale;
-  gy /= gyro_scale;
-  gz /= gyro_scale;
+  velocity_x = (gx-gyro_baseline_x)/gyro_scale;
+  velocity_y = (gy-gyro_baseline_y)/gyro_scale;
+  velocity_z = (gz-gyro_baseline_z)/gyro_scale;
   
   // check against baseline values
-  velocity_x = 0;
-  velocity_y = 0;
-  velocity_z = 0;
-  if(abs(gx-gyro_baseline_x) > 1){
-    velocity_x = gx;
+  if(abs(velocity_x) < 0.5){
+    velocity_x = 0.0;
   }
-  if(abs(gy-gyro_baseline_y) > 1){
-    velocity_y = gy;
+  if(abs(velocity_y) < 0.5){
+    velocity_y = 0.0;
   }
-  if(abs(gz-gyro_baseline_z) > 1){
-    velocity_z = gz;
+  if(abs(velocity_z) < 0.5){
+    velocity_z = 0.0;
   }
   
   /*
@@ -109,7 +106,7 @@ void serialEvent(){
     switch(code){
       case(48):
       angle_delta = 0.0;
-      serialOut(0.0,0.0);
+      serialOut(angle_delta, velocity);
       break;
     }
   }
