@@ -109,6 +109,9 @@ void serialEvent(){
     switch(code){
       case(48):
       angle_delta = 0.0;
+      serialOut(angle_position, angle_delta, velocity);
+      break;
+      case(49):
       angle_position = 0.0;
       serialOut(angle_position, angle_delta, velocity);
       break;
