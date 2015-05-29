@@ -18,7 +18,7 @@ double eps = 1e-9;
 double gyro_scale = 131; // divisor for gyro ADC values
 int16_t rot, gx, gy, gz;
 ulong time;
-double angle_delta, velocity;
+double angle_delta, velocity, angle_position;
 double velocity_x, velocity_y, velocity_z;
 int16_t gyro_baseline_x, gyro_baseline_y, gyro_baseline_z;
 
@@ -41,6 +41,7 @@ void setup() {
   
   
   time = millis();
+  angle_position = 0.0;
   angle_delta = 0.0;
   velocity = 0.0;
   
@@ -82,7 +83,7 @@ void loop() {
   
   // The current position of the sensor should yield only changes in the gyroscope's y-axis.
   // Verified by testing; remove other velocities since they will only throw the chair rotation off.
-  velocity = abs(velocity_y);
+  velocity = velocity_y;
   
   // Upper sum to approximate integral of angular velocity.
   ulong now = millis();
@@ -90,15 +91,17 @@ void loop() {
   time = now;
   double dtheta = (dt/1000.0) * velocity;
   if(abs(dtheta) > eps) {    // dtheta should be positive anyway...
-    angle_delta += dtheta;
-    serialOut(angle_delta, velocity);
+    angle_delta += abs(dtheta);
+    angle_position += dtheta;
+    serialOut(angle_position, angle_delta, velocity);
   }
+  
   delay(5);
 }
 
 /* Whenever there is data on Serial port, read it and handle the command.
    Codes:
-     48  -   Reset angle_delta to 0.0
+     48  -   Reset angle_position and angle_delta to 0.0
 */
 void serialEvent(){
   while (Serial.available()){
@@ -106,7 +109,8 @@ void serialEvent(){
     switch(code){
       case(48):
       angle_delta = 0.0;
-      serialOut(angle_delta, velocity);
+      angle_position = 0.0;
+      serialOut(angle_position, angle_delta, velocity);
       break;
     }
   }
@@ -128,7 +132,9 @@ void gyroScanBaseline(MPU9150 sensor, int duration, int16_t* mx, int16_t* my, in
 }
 
 /* Convenience function to write data to the Serial port. */
-void serialOut(double dt, double dtps){
+void serialOut(double dp, double dt, double dtps){
+  Serial.print(dp);
+  Serial.print(',');
   Serial.print(dt);
   Serial.print(',');
   Serial.print(dtps);
