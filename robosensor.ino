@@ -101,7 +101,8 @@ void loop() {
 
 /* Whenever there is data on Serial port, read it and handle the command.
    Codes:
-     48  -   Reset angle_position and angle_delta to 0.0
+     48  -   Reset angle_delta to 0.0
+     49  -   Reset angle_position to 0.0
 */
 void serialEvent(){
   while (Serial.available()){
@@ -111,6 +112,7 @@ void serialEvent(){
       angle_delta = 0.0;
       serialOut(angle_position, angle_delta, velocity);
       break;
+      
       case(49):
       angle_position = 0.0;
       serialOut(angle_position, angle_delta, velocity);
